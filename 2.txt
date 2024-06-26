@@ -1,0 +1,336 @@
+index.js:
+import Head from 'next/head';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+const HomePage = () => {
+  const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    bonus: false,
+  });
+
+  const basePrice = 137000;
+  const bonusPrice = 57000;
+  const totalPrice = basePrice + (formData.bonus ? bonusPrice : 0);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const finalValue = type === 'checkbox' ? checked : value;
+    setFormData({ ...formData, [name]: finalValue });
+  };
+
+  const handlePaymentMethodChange = (e) => {
+    setPaymentMethod(e.target.value);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:8080/api/payment', { ...formData, paymentMethod, totalPrice });
+      if (response.data.status === 'success') {
+        alert('Detail pembayaran telah terkirim ke email');
+      } else {
+        alert('Gagal mengirim email pembayaran');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Terjadi kesalahan pada pembayaran');
+    }
+  };
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
+    script.setAttribute('data-client-key', 'YOUR_MIDTRANS_CLIENT_KEY');
+    document.body.appendChild(script);
+  }, []);
+
+  const paymentMethods = [
+    // { value: 'bank_transfer', label: 'Bank Transfer', logo: 'https://www.freepnglogos.com/uploads/bank-png/bank-building-logo-18.png' },
+    { value: 'credit_card', label: 'Credit Card', logo: 'https://seeklogo.com/images/V/VISA-logo-A32D589D31-seeklogo.com.png' },
+    { value: 'gopay', label: 'GoPay', logo: 'https://seeklogo.com/images/G/gopay-logo-D27C1EBD0D-seeklogo.com.png' },
+    { value: 'bca_va', label: 'BCA Virtual Account', logo: 'https://seeklogo.com/images/B/bca-bank-logo-1E89320DC2-seeklogo.com.png' },
+    { value: 'bni_va', label: 'BNI Virtual Account', logo: 'https://seeklogo.com/images/B/bank-bni-logo-737EE0F32C-seeklogo.com.png' },
+    { value: 'echannel', label: 'Mandiri Bill (eChannel)', logo: 'https://seeklogo.com/images/B/bank_mandiri-logo-4F6233ABCC-seeklogo.com.png' },
+    { value: 'cstore_indomaret', label: 'Indomaret', logo: 'https://seeklogo.com/images/I/indomaret-logo-EE717AAD0D-seeklogo.com.png' },
+    { value: 'cstore_alfamart', label: 'Alfamart', logo: 'https://seeklogo.com/images/A/alfamart-logo-653AD66E16-seeklogo.com.png' },
+    { value: 'qris', label: 'QRIS', logo: 'https://seeklogo.com/images/Q/quick-response-code-indonesia-standard-qris-logo-F300D5EB32-seeklogo.com.png' },
+  ];
+
+  return (
+    <div className="container mt-5">
+      <Head>
+        <title>Payment Page</title>
+      </Head>
+      <h1 className="mb-4">Spreadsheet & Powerpoint Flexi DSP - 018</h1>
+      <p>Sempurna untuk industri apa pun: Manajer Proyek, Pemilik usaha kecil, Pemimpin tim, Spesialis Penjaminan Mutu, HR Manager, Financial Analyst, Marketing Team, Educator & Trainers, Freelancer.</p>
+      <p>Template yang menghemat waktu anda dan mempermudah segalanya.</p>
+
+      <form onSubmit={handleSubmit} className="mt-4">
+        <div className="mb-3">
+          <label className="form-label">
+            Nama Anda:
+            <input type="text" className="form-control" name="name" value={formData.name} onChange={handleInputChange} required />
+          </label>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">
+            No. WhatsApp Anda:
+            <input type="tel" className="form-control" name="phone" value={formData.phone} onChange={handleInputChange} required />
+          </label>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">
+            Email Anda:
+            <input type="email" className="form-control" name="email" value={formData.email} onChange={handleInputChange} required />
+          </label>
+        </div>
+        <div className="mb-3 form-check">
+          <label className="form-check-label">
+            <input type="checkbox" className="form-check-input" name="bonus" checked={formData.bonus} onChange={handleInputChange} />
+            Dapatkan Bonus (+Rp 57.000)
+          </label>
+        </div>
+
+        <h2>Rincian Pesanan:</h2>
+        <p>Harga: Rp 137.000</p>
+        <p>Bonus: {formData.bonus ? 'Ya (+Rp 57.000)' : 'Tidak'}</p>
+        <p>Total: Rp {totalPrice}</p>
+
+        <h2>Metode Pembayaran:</h2>
+        {paymentMethods.map(method => (
+          <div className="form-check mb-2" key={method.value}>
+            <label className="form-check-label d-flex align-items-center">
+              <input type="radio" className="form-check-input me-2" name="paymentMethod" value={method.value} checked={paymentMethod === method.value} onChange={handlePaymentMethodChange} />
+              <img src={method.logo} alt={method.label} className="me-2" style={{ width: '40px', height: 'auto' }} />
+              {method.label}
+            </label>
+          </div>
+        ))}
+
+        <button type="submit" className="btn btn-primary mt-3">Bayar Sekarang</button>
+      </form>
+    </div>
+  );
+};
+
+export default HomePage;
+
+main.go:
+    package main
+
+    import (
+        "encoding/json"
+        "fmt"
+        "log"
+        "net/http"
+        "net/smtp"
+        "os"
+        "time"
+
+        "github.com/joho/godotenv"
+        "github.com/veritrans/go-midtrans"
+    )
+
+    type PaymentRequest struct {
+        Name          string `json:"name"`
+        Phone         string `json:"phone"`
+        Email         string `json:"email"`
+        Bonus         bool   `json:"bonus"`
+        PaymentMethod string `json:"paymentMethod"`
+        TotalPrice    int    `json:"totalPrice"`
+    }
+
+    type MidtransNotification struct {
+        OrderID           string `json:"order_id"`
+        TransactionStatus string `json:"transaction_status"`
+        FraudStatus       string `json:"fraud_status"`
+    }
+
+    const (
+        // PaymentTypeBankTransfer    midtrans.PaymentType = "bank_transfer"
+        PaymentTypeCreditCard      midtrans.PaymentType = "credit_card"
+        PaymentTypeGopay           midtrans.PaymentType = "gopay"
+        PaymentTypeBCAVA           midtrans.PaymentType = "bca_va"
+        PaymentTypeBNIVA           midtrans.PaymentType = "bni_va"
+        PaymentTypeEChannel        midtrans.PaymentType = "echannel"
+        PaymentTypeCStoreIndomaret midtrans.PaymentType = "cstore"
+        PaymentTypeCStoreAlfamart  midtrans.PaymentType = "cstore"
+        PaymentTypeQris            midtrans.PaymentType = "qris"
+    )
+
+    func sendEmail(subject, body, recipient string) error {
+        from := os.Getenv("EMAIL_USERNAME")
+        password := os.Getenv("EMAIL_PASSWORD")
+        smtpHost := "smtp.gmail.com"
+        smtpPort := "587"
+
+        to := []string{recipient}
+
+        message := []byte(fmt.Sprintf("Subject: %s\r\n\r\n%s", subject, body))
+
+        auth := smtp.PlainAuth("", from, password, smtpHost)
+        err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
+        if err != nil {
+            return err
+        }
+        return nil
+    }
+
+    func sendThankYouEmail(recipient, name string) error {
+        subject := "Thanks for Paying"
+        body := fmt.Sprintf("Hi %s,\n\nThank you for your payment. Your order is being processed.\n\nBest regards,\nYour Company", name)
+        return sendEmail(subject, body, recipient)
+    }
+
+    func paymentHandler(w http.ResponseWriter, r *http.Request) {
+        if r.Method == http.MethodOptions {
+            w.Header().Set("Access-Control-Allow-Origin", "*")
+            w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+            w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+            w.WriteHeader(http.StatusNoContent)
+            return
+        }
+
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Header().Set("Content-Type", "application/json")
+
+        var req PaymentRequest
+        err := json.NewDecoder(r.Body).Decode(&req)
+        if err != nil {
+            http.Error(w, err.Error(), http.StatusBadRequest)
+            return
+        }
+
+        // Initialize Snap client
+        midclient := midtrans.NewClient()
+        midclient.ServerKey = os.Getenv("MIDTRANS_SERVER_KEY")
+        midclient.ClientKey = os.Getenv("MIDTRANS_CLIENT_KEY")
+        midclient.APIEnvType = midtrans.Sandbox
+
+        snapGateway := midtrans.SnapGateway{Client: midclient}
+
+        // Map payment method string to midtrans.PaymentType
+        paymentType := map[string]midtrans.PaymentType{
+            // "bank_transfer":    PaymentTypeBankTransfer,
+            "credit_card":      PaymentTypeCreditCard,
+            "gopay":            PaymentTypeGopay,
+            "bca_va":           PaymentTypeBCAVA,
+            "bni_va":           PaymentTypeBNIVA,
+            "echannel":         PaymentTypeEChannel,
+            "cstore_indomaret": PaymentTypeCStoreIndomaret,
+            "cstore_alfamart":  PaymentTypeCStoreAlfamart,
+            "qris":             PaymentTypeGopay,
+        }[req.PaymentMethod]
+
+        reqSnap := &midtrans.SnapReq{
+            TransactionDetails: midtrans.TransactionDetails{
+                OrderID:  fmt.Sprintf("order-%d", time.Now().Unix()),
+                GrossAmt: int64(req.TotalPrice),
+            },
+            CustomerDetail: &midtrans.CustDetail{
+                FName: req.Name,
+                Email: req.Email,
+                Phone: req.Phone,
+            },
+            EnabledPayments: []midtrans.PaymentType{paymentType},
+        }
+
+        snapTokenResp, err := snapGateway.GetToken(reqSnap)
+        if err != nil {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+            return
+        }
+
+        var paymentDetails string
+
+        // Customize payment details based on payment method
+        switch req.PaymentMethod {
+        case "bank_transfer":
+            paymentDetails = fmt.Sprintf("Please transfer to the following bank account number: %s", snapTokenResp.RedirectURL)
+        case "credit_card":
+            paymentDetails = fmt.Sprintf("Your credit card payment has been initiated. Please complete the payment through the following link: %s", snapTokenResp.RedirectURL)
+        case "gopay":
+            paymentDetails = fmt.Sprintf("Please use GoPay to complete your payment using the following link: %s", snapTokenResp.RedirectURL)
+        case "bca_va":
+            paymentDetails = fmt.Sprintf("Please transfer to the following BCA Virtual Account number: %s", snapTokenResp.RedirectURL)
+        case "bni_va":
+            paymentDetails = fmt.Sprintf("Please transfer to the following BNI Virtual Account number: %s", snapTokenResp.RedirectURL)
+        case "echannel":
+            paymentDetails = fmt.Sprintf("Please complete your payment using Mandiri Bill (eChannel) with the following link: %s", snapTokenResp.RedirectURL)
+        case "cstore_indomaret":
+            paymentDetails = fmt.Sprintf("Please complete your payment at Indomaret using the following instructions: %s", snapTokenResp.RedirectURL)
+        case "cstore_alfamart":
+            paymentDetails = fmt.Sprintf("Please complete your payment at Alfamart using the following instructions: %s", snapTokenResp.RedirectURL)
+        case "qris":
+            paymentDetails = fmt.Sprintf("Please scan the following QR code to complete your payment: %s", snapTokenResp.RedirectURL)
+        default:
+            paymentDetails = "Please follow the instructions to complete your payment."
+        }
+
+        // Compose the email content
+        emailContent := fmt.Sprintf("Hi %s,\n\nTerima kasih atas pesanan Anda. Berikut adalah detail pesanan Anda:\n\nNama: %s\nNo. WhatsApp: %s\nEmail: %s\nBonus: %t\nTotal Harga: Rp %d\n\n%s\n\nBest regards,\nYour Company", req.Name, req.Name, req.Phone, req.Email, req.Bonus, req.TotalPrice, paymentDetails)
+
+        err = sendEmail("Detail Pembayaran Anda", emailContent, req.Email)
+        if err != nil {
+            log.Printf("Failed to send email: %v", err)
+            http.Error(w, "Failed to send email", http.StatusInternalServerError)
+            return
+        }
+
+        json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+    }
+
+    func notificationHandler(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/json")
+
+        var notification MidtransNotification
+        err := json.NewDecoder(r.Body).Decode(&notification)
+        if err != nil {
+            http.Error(w, err.Error(), http.StatusBadRequest)
+            return
+        }
+
+        // Handle only successful transactions
+        if notification.TransactionStatus == "settlement" {
+            // Assuming the OrderID is stored in a database with the associated email and name
+            // Fetch email and name from database
+            // For demonstration, using dummy values
+            email := "user@example.com"
+            name := "User"
+
+            err := sendThankYouEmail(email, name)
+            if err != nil {
+                log.Printf("Failed to send email: %v", err)
+                http.Error(w, "Failed to send email", http.StatusInternalServerError)
+                return
+            }
+        }
+
+        w.WriteHeader(http.StatusOK)
+        json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+    }
+
+    func main() {
+        err := godotenv.Load()
+        if err != nil {
+            log.Fatal("Error loading .env file")
+        }
+
+        http.HandleFunc("/api/payment", paymentHandler)
+        http.HandleFunc("/api/notification", notificationHandler)
+
+        fmt.Println("Server started at :808x0")
+        log.Fatal(http.ListenAndServe(":8080", nil))
+    }
+
+go .env:
+MIDTRANS_SERVER_KEY=SB-Mid-server-XagYhhzNKhT5URnh6XFAQKEZ
+MIDTRANS_CLIENT_KEY=SB-Mid-client-Ldpizwz89amL5FBR
+EMAIL_USERNAME=guyadipawitra@gmail.com
+EMAIL_PASSWORD=jduypzhvbbljneys
+DB_CONN_STR=guyadb:guyaggg@tcp(127.0.0.1:3306)/pulang
